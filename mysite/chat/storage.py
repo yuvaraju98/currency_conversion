@@ -1,0 +1,4 @@
+
+
+class store:
+    obj='unknown'
