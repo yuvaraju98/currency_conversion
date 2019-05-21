@@ -38,14 +38,16 @@
                        <div class="navbar-header">
                           <br><br>
                            <img src="https://www.w3schools.com/bootstrap/img_avatar2.png" class="img-circle" alt="My image" width=40px height="40"/>
-                            <div id="activeuser"> Yuva Rakju</div>
+                            <div id="activeuser"> {{ active_user }}</div>
                         </div>
                     </div>
                   </nav>
                 </div>
               </div>
-              <br><br>
-              <br><br>
+                <hr>
+          <h3>Registered Users</h3>
+          <hr>
+
           {% for i in users %}
               {% csrf_token %}
 
@@ -75,8 +77,13 @@
               <div class="container-fluid">
                   <div class="navbar-header">
 
-                    <h2>ChatRoom</h2>
-                  </div>
+                    <div class="navbar-brand" >R Chat</div>
+    </div>
+
+    <ul class="nav navbar-nav navbar-right">
+      <li><a href="/chat/login"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+    </ul>
+
               </div>
 
               <div  style="background-color:#e6eaea;height:540px;overflow-y: scroll;overflow-x:hidden;"><br>
@@ -92,7 +99,7 @@
                               </div>
                           <div class="media-body">
                                   <h4 class="media-heading">{{ i.sender }}</h4>
-                                  <p>{{ i.message }}<p>I will display &#128513;</p>
+                                  <p>{{ i.message }}
                           </div>
                         </div>
                     </div>
@@ -102,7 +109,7 @@
           </div>
             <div class="row">
                 <div class="col-md-10"> <input id="chat-message-input" placeholder="write somethign here" type="text" style="width:100%;"></div>
-                <div class="col-md-2"> <input id="chat-message-submit"  type="button" value="Send"/></div></div>
+                <div class="col-md-2"> <input id="chat-message-submit"  type="button" value="Send" style="width:100%;"/></div></div>
             </nav>
         </div>
     </div>
@@ -118,6 +125,7 @@
       chatSocket.onmessage = function(e) {
           var data = JSON.parse(e.data);
           var message = data['message'];
+          var sender=data['sender'];
           var tone=data['tone'];
 
           var pre=`<div class="row" >
@@ -130,7 +138,7 @@
                               <div class="media-body">
 
                                   <h4 class="media-heading">`
-           var mid=document.querySelector('#activeuser').innerHTML+'</h4> <p>'
+           var mid=sender+'</h4> <p>'
            var next=`</div>
               </div>
        </div>

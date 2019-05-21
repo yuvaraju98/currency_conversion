@@ -56,7 +56,8 @@ def chatbox2(request,users):
     return render(request,'chat.html',{'users':d,'chats':chats,'form':form})
 
 
-def upload_chat_task(message):
+def upload_chat_task(message,tone):
+    # message=message+' '+tone
     chat_table.objects.create(sender=store.obj,message=message)
     return 0
 
@@ -90,5 +91,5 @@ def chatbox(request,users):
     d=d.values()
     chats=list(chat_table.objects.filter())
     form= chat()
-    dictionry={'users':d,'chats':chats,'form':form}
+    dictionry={'users':d,'chats':chats,'form':form,'active_user':store.obj}
     return views.room(request,dictionry)
