@@ -20,10 +20,7 @@
       <a class="navbar-brand" href="#">R world</a>
     </div>
 
-    <ul class="nav navbar-nav navbar-right">
-      <li><a href="/"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
-      <li><a href="/chat/login"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
-    </ul>
+
   </div>
 </nav>
 
@@ -43,16 +40,20 @@
                 <form method="post" action="upload/">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label>{{ form.name.label_tag }}</label><br>
-                    {{ form.name }}
+                    <label>{{ form.base.label_tag }}</label><br>
+                    {{ form.base }}
                 </div>
                 <div class="form-group">
-                    <label>{{ form.email.label_tag }}</label><br>
-                    {{ form.email }}
+                    <label>{{ form.target.label_tag }}</label><br>
+                    {{ form.target }}
                 </div>
                 <div class="form-group">
-                    <label>{{ form.password.label_tag }}</label><br>
-                    {{ form.password }}
+                    <label>{{ form.date.label_tag }}</label><br>
+                    {{ form.date }}
+                </div>
+                     <div class="form-group">
+                    <label>{{ form.maxdays.label_tag }}</label><br>
+                    {{ form.maxdays }}
                 </div>
                     {{ comment }}
                 <button type="submit" class="btn btn-success btn-block">Submit</button>
