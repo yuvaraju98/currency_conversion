@@ -9,7 +9,7 @@ from .charts import LineChart
 
 
 
-def _form_view(request, template_name='chat/basic2.html', form_class=DataForm,comment='',line_chart=LineChart([0,0,0])):
+def _form_view(request, template_name='chat/basic2.html', form_class=DataForm,comment='',line_chart=LineChart({'label':0})):
     if request.method == 'POST':
         form = form_class(request.POST)
         if form.is_valid():
