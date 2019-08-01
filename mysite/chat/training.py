@@ -4,11 +4,9 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 import json
 
-def train(f):
-    contents = f.read()
+def train(x,y):
     logreg = LinearRegression()
-
-    logreg.fit(pd.DataFrame(x_train), x_result)
+    logreg.fit(x, y)
 
     return logreg
 
@@ -23,7 +21,13 @@ def transform(values):
         x_train['month'].append(pd.to_datetime(x).month)
         x_train['dayname'].append(pd.to_datetime(x).day_name())
         x_result.append(y['rates']['INR'])
-    pp=pd.get_dummies(x_train['dayname']).iloc[:0]
+
+    df = pd.DataFrame(pd.get_dummies(x_train['dayname']))
+    df['day'] = x_train['day']
+    df['month'] = x_train['month']
+    print(df.to_string())
+
+    return df,x_result
 
 
 def predict(logreg):

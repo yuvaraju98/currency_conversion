@@ -2,19 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fd34275f-345e-4737-8286-e5712c05c3f4" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/mytry.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/mytry.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/chat/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/chat/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/chat/routing.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/chat/storage.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/mysite/chat/tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/tasks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/chat/templates/chat/basic2.html" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/templates/chat/basic2.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/chat/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/chat/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mysite/mysite/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/mysite/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mysite/chat/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/training.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -86,7 +76,9 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>
