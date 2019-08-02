@@ -12,16 +12,19 @@ cache= get_redis_connection("default")
 def process(request):
     data=upload(request)
     response = get_data(data)
-    # print(response)
-    # x_train,y_train=transform(pd.DataFrame(response))
+    x_train,y_train=transform(response)
     # print("x_train done")
-    # logreg=train_model(x_train,y_train)
-    # print("model trained")
-    # get_predicted_array = predict(logreg,data)
-    #
-    # print(get_predicted_array)
-    # return get_predicted_array
-    return {'label':0}
+    logreg=train_model(x_train,y_train)
+    print("model trained")
+    get_predicted_array = predict(logreg,data)
+
+    print(get_predicted_array)
+    return get_predicted_array
+    # return {'label':0}
+
+def merge_dataframe(df_1,df_2):
+    print(df_1)
+    print(df_2)
 
 
 def upload(request):
@@ -40,7 +43,8 @@ def get_data(data):
 
     start_date=str(data['date'])
     prev_2M_date=pd.to_datetime(start_date)+pd.DateOffset(months=-2)
-    df_dict={'base':[],'date':[]}
+    df_dict={'base':[],'date':[],'target':[]}
+    response={}
     retrieve_start_date=prev_2M_date.date()
     retrieve_end_date=start_date
     flag=0
@@ -105,19 +109,21 @@ def get_data(data):
 
     print("startx",x,"y",y,type(x))
     while pd.to_datetime(x)!= pd.to_datetime(y):
-        print("current date -",x,type(x),pd.to_datetime(x).day_name())
-        print("data =",cache.hget(x,'INR'))
+        # print("current date -",x,type(x),pd.to_datetime(x).day_name())
+        print("data =",x,cache.hget(x,'INR'))
         if pd.to_datetime(x).day_name() not in ['Saturday','Sunday']:
             if (cache.hgetall(x)):
                 print("indise")
-                df_dict['base'].append(cache.hget(x,'INR'))
+                df_dict['base'].append(float(cache.hget(x,data['base'])))
+                df_dict['target'].append(float(cache.hget(x,data['target'])))
+
                 df_dict['date'].append(x)
                 x=pd.to_datetime(x).date()+pd.DateOffset(1)
                 x=str(x.date())
-                print("next date",x,type(x))
+                # print("next date",x,type(x))
                 x = str(x, 'utf-8') if isinstance(x, bytes) else str(x)
                 y = str(y, 'utf-8') if isinstance(y, bytes) else str(y)
-                print("end x,y-",x,y)
+                # print("end x,y-",x,y)
 
             else:
                 flag=1
@@ -130,7 +136,6 @@ def get_data(data):
     retrieve_end_date=str(retrieve_end_date,'utf-8') if isinstance(retrieve_end_date,bytes) else retrieve_end_date
     cache.set('min_date1',str(cache.get('min_date1'),'utf-8')) if isinstance(cache.get('min_date1'),bytes) else 0
     cache.set('max_date1',str(cache.get('max_date1'),'utf-8')) if isinstance(cache.get('max_date1'),bytes) else 0
-    print("df",pd.DataFramedf_dict)
 
     if flag:
         print("retrieveig")
@@ -141,14 +146,18 @@ def get_data(data):
             print('key',key)
             cache.hmset(str(key),value)
             cache.lpush('dates',key)
-        # print(cache.lrange('dates',0,3),x)
-        print(cache.hgetall(x))
+            df_dict['date'].append(str(key))
+            df_dict['base'].append(value[data['base']])
+            df_dict['target'].append(value[data['target']])
+
     else:
         print(pd.DataFrame(df_dict))
+    df_dict=pd.DataFrame(df_dict)
+
     print("endmin", cache.get('min_date1'))
     print("endman", cache.get('max_date1'))
-    print(pd.DataFrame(response))
-    return response
+    print(pd.DataFrame(df_dict))
+    return df_dict
 
 
 def train_model(dependent,independent):
@@ -157,15 +166,20 @@ def train_model(dependent,independent):
 
 def predict(logreg,data):
     waiting_dates=dict()
+    forcast_dict=dict()
     for wait_days in range(int(data['maxdays'])+1):
         considered_date=pd.Series(pd.to_datetime(data['date'])+pd.DateOffset(wait_days))
-        transfored_data = predict_transform(considered_date)
+        forcast_dict['date']=considered_date.values
+        forcast_dict['base']=1
+        transfored_data = predict_transform(forcast_dict)
 
         for days in ['Monday','Tuesday','Wednesday','Thursday','Friday']:
             if days not in transfored_data.columns:
                 transfored_data[days]=0
         conversion=predict_values(logreg, transfored_data)
+
         if conversion== -1:
+            print("Saturday")
             continue
         waiting_dates[str(considered_date[0])]=predict_values(logreg, transfored_data)
 

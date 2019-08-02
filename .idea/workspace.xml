@@ -4,6 +4,8 @@
     <list default="true" id="fd34275f-345e-4737-8286-e5712c05c3f4" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mysite/chat/tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/tasks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mysite/chat/templates/chat/basic2.html" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/templates/chat/basic2.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mysite/chat/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/mysite/chat/training.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

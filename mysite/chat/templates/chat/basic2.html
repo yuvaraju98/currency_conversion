@@ -29,19 +29,23 @@
                 <form method="post" action="upload/">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label>{{ form.base.label_tag }}</label><br>
+                    <label>{{ form.base.label_tag }}</label>
                     {{ form.base }}
                 </div>
                 <div class="form-group">
-                    <label>{{ form.target.label_tag }}</label><br>
+                    <label>{{ form.target.label_tag }}</label>
                     {{ form.target }}
                 </div>
+                    <div class="form-group">
+                    <label>{{ form.amount.label_tag }}</label>
+                    {{ form.amount }}
+                </div>
                 <div class="form-group">
-                    <label>{{ form.date.label_tag }}</label><br>
+                    <label>{{ form.date.label_tag }}</label>
                     {{ form.date }}
                 </div>
                      <div class="form-group">
-                    <label>{{ form.maxdays.label_tag }}</label><br>
+                    <label>{{ form.maxdays.label_tag }}</label>
                     {{ form.maxdays }}
                 </div>
                     {{ comment }}
