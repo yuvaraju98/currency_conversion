@@ -1,6 +1,6 @@
 
 from django.shortcuts import redirect,render
-
+import datetime
 from . import views
 from .forms import DataForm
 import pandas as pd
@@ -9,154 +9,158 @@ import requests
 # from django.core.cache import cache
 from django_redis import get_redis_connection
 cache= get_redis_connection("default")
+
+
+def validate_fields(requests):
+    data=upload(requests)
+    date=data['date']
+    if len(data['base'])!=3:
+        return "Please enter valid base currency"
+    if len(data['target']) != 3:
+        return "Please enter valid target currency"
+    try:
+        int(data['maxdays'])
+    except:
+        return "Please enter only numbers"
+    try:
+        if(int(data['amount']))<=0:
+            return "Please enter amount greater than 0"
+    except:
+        return "Please enter only numbers"
+    date_format = '%Y-%m-%d'
+    try:
+        date_obj = datetime.datetime.strptime(date ,date_format)
+    except :
+        return "Incorrect data format, should be YYYY-MM-DD"
+
+
 def process(request):
-    data=upload(request)
+    
+    # Retrieve the data
+    data=upload(request)  
+    
+    #  Get data from the API or from cache
     response = get_data(data)
+    
+    # Extract the feature variables 
     x_train,y_train=transform(response)
-    # print("x_train done")
+    
+    # train the model
     logreg=train_model(x_train,y_train)
-    print("model trained")
+    
+    # forecast the value from start date to wait date
     get_predicted_array = predict(logreg,data)
 
     print(get_predicted_array)
     return get_predicted_array
-    # return {'label':0}
-
-def merge_dataframe(df_1,df_2):
-    print(df_1)
-    print(df_2)
-
 
 def upload(request):
     data=dict()
-    data['base'] = request.POST.get('base')
-    data['target'] = request.POST.get('target')
+    data['base'] = str(request.POST.get('base')).upper()
+    data['target'] = str(request.POST.get('target')).upper()
     data['date'] = request.POST.get('date')
     data['maxdays'] = request.POST.get('maxdays')
     data['amount'] = request.POST.get('amount')
     return data
 
 
-
-
 def get_data(data):
 
     start_date=str(data['date'])
-    prev_2M_date=pd.to_datetime(start_date)+pd.DateOffset(months=-2)
+    prev_2M_date = pd.to_datetime(start_date)+pd.DateOffset(months=-2)
     df_dict={'base':[],'date':[],'target':[]}
-    response={}
+    
     retrieve_start_date=prev_2M_date.date()
     retrieve_end_date=start_date
     flag=0
-    print("--------------------------------------------------------")
 
-    print("min",cache.get('min_date1'))
-    print("man",cache.get('max_date1'))
-    print("2m",prev_2M_date)
-    print("current",start_date)
-
+    # case where the cache is null ie accessing for the first time
     if not cache.get('min_date1'):
         cache.set('min_date1',str(prev_2M_date.date()))
     if not cache.get('max_date1'):
         cache.set('max_date1',str(start_date))
 
-    x=str(prev_2M_date.date())
-    y=start_date
+    # variable to hold the start and end dates to be retrieved from cache
+    start_cache_date=str(prev_2M_date.date())
+    end_cache_date=start_date
 
+    # case 1  : required min date is greater than the max cached date
     if pd.to_datetime(prev_2M_date)> pd.to_datetime(str(cache.get('max_date1'), 'utf-8')):
-        print("condition 1-- to much")
         retrieve_start_date=str(prev_2M_date.date())
         retrieve_end_date=start_date
         cache.set('min_date1',str(prev_2M_date.date()))
         cache.set('max_date1',start_date)
         flag=1
-        # print(retrieve_end_date,retrieve_start_date)
 
+    # case 2: required max date is greater than the min cached date
     elif pd.to_datetime(start_date) < pd.to_datetime(str(cache.get('min_date1'), 'utf-8')):
-        print("condition 2 -- too less")
-
         retrieve_start_date = start_date
         retrieve_end_date = str(prev_2M_date.date())
         cache.set('min_date1', str(prev_2M_date.date()))
         cache.set('max_date1', start_date)
-        # print(retrieve_end_date,retrieve_start_date)
         flag=1
 
+    # case 3:required min date is greater than the min cached date but required max date is less than the cached max date
     elif (pd.to_datetime(prev_2M_date)> pd.to_datetime(str(cache.get('min_date1'), 'utf-8'))) and not (pd.to_datetime(start_date) < pd.to_datetime(str(cache.get('max_date1'), 'utf-8'))):
-        print("condition 3 min over current min "  )
-        x=str(pd.to_datetime(prev_2M_date).date())
-        y=cache.get('max_date1')
+        start_cache_date=str(pd.to_datetime(prev_2M_date).date())
+        end_cache_date=cache.get('max_date1')
         retrieve_start_date=cache.get('max_date1')
         retrieve_end_date=start_date
         cache.set('max_date1',start_date)
         flag=1
-        # print(retrieve_end_date,retrieve_start_date)
 
+    # case4 : required min date is less than the cached min date
     elif pd.to_datetime(prev_2M_date) < pd.to_datetime(str(cache.get('min_date1'), 'utf-8')) :
-        print("condition 4 min less than current min")
-        x=cache.get('min_date1')
-        y=start_date
+        start_cache_date=cache.get('min_date1')
+        end_cache_date=start_date
         retrieve_start_date=str(prev_2M_date.date())
         retrieve_end_date=cache.get('min_date1')
         cache.set('min_date1',str(prev_2M_date.date()))
         flag=1
-        # print(retrieve_end_date,retrieve_start_date)
 
-    else:
-        print("condition 5")
-    x = str(x, 'utf-8') if isinstance(x, bytes) else x
-    y = str(y, 'utf-8') if isinstance(y, bytes) else y
+    start_cache_date = str(start_cache_date, 'utf-8') if isinstance(start_cache_date, bytes) else start_cache_date
+    end_cache_date = str(end_cache_date, 'utf-8') if isinstance(end_cache_date, bytes) else end_cache_date
 
-    print("startx",x,"y",y,type(x))
-    while pd.to_datetime(x)!= pd.to_datetime(y):
-        # print("current date -",x,type(x),pd.to_datetime(x).day_name())
-        print("data =",x,cache.hget(x,'INR'))
-        if pd.to_datetime(x).day_name() not in ['Saturday','Sunday']:
-            if (cache.hgetall(x)):
-                print("indise")
-                df_dict['base'].append(float(cache.hget(x,data['base'])))
-                df_dict['target'].append(float(cache.hget(x,data['target'])))
+    # loop through the cache start date variable to cached end date variable
+    while pd.to_datetime(start_cache_date)!= pd.to_datetime(end_cache_date):
+        if pd.to_datetime(start_cache_date).day_name() not in ['Saturday','Sunday']:
 
-                df_dict['date'].append(x)
-                x=pd.to_datetime(x).date()+pd.DateOffset(1)
-                x=str(x.date())
-                # print("next date",x,type(x))
-                x = str(x, 'utf-8') if isinstance(x, bytes) else str(x)
-                y = str(y, 'utf-8') if isinstance(y, bytes) else str(y)
-                # print("end x,y-",x,y)
-
+            # Exsuring the data is in the cache , if not call the api
+            print(start_cache_date)
+            if cache.hgetall(start_cache_date):
+                df_dict['base'].append(float(cache.hget(start_cache_date,data['base'])))
+                df_dict['target'].append(float(cache.hget(start_cache_date,data['target'])))
+                df_dict['date'].append(start_cache_date)
+                start_cache_date=pd.to_datetime(start_cache_date).date()+pd.DateOffset(1)
+                start_cache_date=str(start_cache_date.date())
+                # x = str(x, 'utf-8') if isinstance(x, bytes) else str(x)
+                # y = str(y, 'utf-8') if isinstance(y, bytes) else str(y)
             else:
+                # If there is missing value in the cache ,break
+                retrieve_start_date=start_cache_date
                 flag=1
                 break
         else:
-            x = pd.to_datetime(x).date() + pd.DateOffset(1)
-            x = str(x.date())
+            start_cache_date = pd.to_datetime(start_cache_date).date() + pd.DateOffset(1)
+            start_cache_date = str(start_cache_date.date())
 
-    retrieve_start_date=str(retrieve_start_date,'utf-8') if isinstance(retrieve_start_date,bytes) else retrieve_start_date
-    retrieve_end_date=str(retrieve_end_date,'utf-8') if isinstance(retrieve_end_date,bytes) else retrieve_end_date
-    cache.set('min_date1',str(cache.get('min_date1'),'utf-8')) if isinstance(cache.get('min_date1'),bytes) else 0
-    cache.set('max_date1',str(cache.get('max_date1'),'utf-8')) if isinstance(cache.get('max_date1'),bytes) else 0
+    # retrieve_start_date=str(retrieve_start_date,'utf-8') if isinstance(retrieve_start_date,bytes) else retrieve_start_date
+    # retrieve_end_date=str(retrieve_end_date,'utf-8') if isinstance(retrieve_end_date,bytes) else retrieve_end_date
+    # cache.set('min_date1',str(cache.get('min_date1'),'utf-8')) if isinstance(cache.get('min_date1'),bytes) else 0
+    # cache.set('max_date1',str(cache.get('max_date1'),'utf-8')) if isinstance(cache.get('max_date1'),bytes) else 0
 
+    # if more data is to be retrieved
     if flag:
-        print("retrieveig")
         url='https://api.exchangeratesapi.io/history?start_at={}&end_at={}'.format(retrieve_start_date,retrieve_end_date)
-        print(url)
         response=requests.get(url).json()['rates']
         for key,value in response.items():
-            print('key',key)
+            # retrieve the values and set it in the cache
             cache.hmset(str(key),value)
             cache.lpush('dates',key)
             df_dict['date'].append(str(key))
             df_dict['base'].append(value[data['base']])
             df_dict['target'].append(value[data['target']])
-
-    else:
-        print(pd.DataFrame(df_dict))
     df_dict=pd.DataFrame(df_dict)
-
-    print("endmin", cache.get('min_date1'))
-    print("endman", cache.get('max_date1'))
-    print(pd.DataFrame(df_dict))
     return df_dict
 
 
@@ -167,22 +171,26 @@ def train_model(dependent,independent):
 def predict(logreg,data):
     waiting_dates=dict()
     forcast_dict=dict()
+    
+    # predict for all the dates starting for start date
     for wait_days in range(int(data['maxdays'])+1):
         considered_date=pd.Series(pd.to_datetime(data['date'])+pd.DateOffset(wait_days))
         forcast_dict['date']=considered_date.values
-        forcast_dict['base']=1
+
+        #  Transform as required for input in the model
         transfored_data = predict_transform(forcast_dict)
 
+        # Creating dummy values in the dataframe
         for days in ['Monday','Tuesday','Wednesday','Thursday','Friday']:
             if days not in transfored_data.columns:
                 transfored_data[days]=0
         conversion=predict_values(logreg, transfored_data)
-
-        if conversion== -1:
-            print("Saturday")
+        
+        #  Ignore the value if date comes out to be saturday or sunday
+        if conversion== -1: 
             continue
-        waiting_dates[str(considered_date[0])]=predict_values(logreg, transfored_data)
-
+        # update the dictionaries keys:dates values:amount
+        waiting_dates[str(considered_date[0].date())]=predict_values(logreg, transfored_data)*int(data['amount'])
 
     return waiting_dates
 

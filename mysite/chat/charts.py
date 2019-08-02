@@ -1,6 +1,5 @@
-
-
 from jchart import Chart
+
 
 class LineChart(Chart):
     chart_type = 'line'
@@ -18,5 +17,4 @@ class LineChart(Chart):
         dict_points['label'] = "Conversion rates"
         dict_points['data']=list(self.value_array.values())
         dict_single.append(dict_points)
-        print(dict_single)
         return dict_single
