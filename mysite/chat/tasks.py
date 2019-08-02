@@ -12,7 +12,7 @@ cache= get_redis_connection("default")
 def process(request):
     data=upload(request)
     response = get_data(data)
-    print(response)
+    # print(response)
     # x_train,y_train=transform(pd.DataFrame(response))
     # print("x_train done")
     # logreg=train_model(x_train,y_train)
@@ -38,55 +38,116 @@ def upload(request):
 
 def get_data(data):
 
-    start_date=data['date']
+    start_date=str(data['date'])
     prev_2M_date=pd.to_datetime(start_date)+pd.DateOffset(months=-2)
-    df_dict={'base':[],'target':[]}
-    retrieve_start_date=prev_2M_date
+    df_dict={'base':[],'date':[]}
+    retrieve_start_date=prev_2M_date.date()
     retrieve_end_date=start_date
+    flag=0
+    print("--------------------------------------------------------")
 
     print("min",cache.get('min_date1'))
     print("man",cache.get('max_date1'))
-
+    print("2m",prev_2M_date)
+    print("current",start_date)
 
     if not cache.get('min_date1'):
         cache.set('min_date1',str(prev_2M_date.date()))
     if not cache.get('max_date1'):
         cache.set('max_date1',str(start_date))
-    print(prev_2M_date,cache.get('max_date1'))
-    if pd.to_datetime(prev_2M_date)> pd.to_datetime(str(cache.get('max_date1'))):
+
+    x=str(prev_2M_date.date())
+    y=start_date
+
+    if pd.to_datetime(prev_2M_date)> pd.to_datetime(str(cache.get('max_date1'), 'utf-8')):
+        print("condition 1-- to much")
         retrieve_start_date=str(prev_2M_date.date())
         retrieve_end_date=start_date
         cache.set('min_date1',str(prev_2M_date.date()))
         cache.set('max_date1',start_date)
+        flag=1
+        # print(retrieve_end_date,retrieve_start_date)
 
-    elif pd.to_datetime(start_date) < pd.to_datetime(cache.get('min_date1')):
+    elif pd.to_datetime(start_date) < pd.to_datetime(str(cache.get('min_date1'), 'utf-8')):
+        print("condition 2 -- too less")
+
         retrieve_start_date = start_date
         retrieve_end_date = str(prev_2M_date.date())
         cache.set('min_date1', str(prev_2M_date.date()))
         cache.set('max_date1', start_date)
+        # print(retrieve_end_date,retrieve_start_date)
+        flag=1
 
-    elif pd.to_datetime(prev_2M_date)> pd.to_datetime(cache.get('min_date1')):
+    elif (pd.to_datetime(prev_2M_date)> pd.to_datetime(str(cache.get('min_date1'), 'utf-8'))) and not (pd.to_datetime(start_date) < pd.to_datetime(str(cache.get('max_date1'), 'utf-8'))):
+        print("condition 3 min over current min "  )
+        x=str(pd.to_datetime(prev_2M_date).date())
+        y=cache.get('max_date1')
         retrieve_start_date=cache.get('max_date1')
-        retrieve_end_date=str(start_date)
+        retrieve_end_date=start_date
         cache.set('max_date1',start_date)
-    elif pd.to_datetime(prev_2M_date) < pd.to_datetime(cache.get('min_date1')):
+        flag=1
+        # print(retrieve_end_date,retrieve_start_date)
+
+    elif pd.to_datetime(prev_2M_date) < pd.to_datetime(str(cache.get('min_date1'), 'utf-8')) :
+        print("condition 4 min less than current min")
+        x=cache.get('min_date1')
+        y=start_date
         retrieve_start_date=str(prev_2M_date.date())
         retrieve_end_date=cache.get('min_date1')
         cache.set('min_date1',str(prev_2M_date.date()))
-    else:
-        while prev_2M_date != pd.to_datetime(start_date):
-            df_dict['base'].append(cache.hget(prev_2M_date,data['base']))
-            df_dict['target'].append(cache.hget(prev_2M_date,data['target']))
-            prev_2M_date=prev_2M_date+pd.DateOffset(1)
-        print(df_dict)
+        flag=1
+        # print(retrieve_end_date,retrieve_start_date)
 
-    url='https://api.exchangeratesapi.io/history?start_at={}&end_at={}'.format(str(retrieve_start_date),str(retrieve_end_date))
-    response=requests.get(url).json()
-    for key,value in response.items():
-        cache.hmset(key,value)
-        cache.lpush('dates',key)
+    else:
+        print("condition 5")
+    x = str(x, 'utf-8') if isinstance(x, bytes) else x
+    y = str(y, 'utf-8') if isinstance(y, bytes) else y
+
+    print("startx",x,"y",y,type(x))
+    while pd.to_datetime(x)!= pd.to_datetime(y):
+        print("current date -",x,type(x),pd.to_datetime(x).day_name())
+        print("data =",cache.hget(x,'INR'))
+        if pd.to_datetime(x).day_name() not in ['Saturday','Sunday']:
+            if (cache.hgetall(x)):
+                print("indise")
+                df_dict['base'].append(cache.hget(x,'INR'))
+                df_dict['date'].append(x)
+                x=pd.to_datetime(x).date()+pd.DateOffset(1)
+                x=str(x.date())
+                print("next date",x,type(x))
+                x = str(x, 'utf-8') if isinstance(x, bytes) else str(x)
+                y = str(y, 'utf-8') if isinstance(y, bytes) else str(y)
+                print("end x,y-",x,y)
+
+            else:
+                flag=1
+                break
+        else:
+            x = pd.to_datetime(x).date() + pd.DateOffset(1)
+            x = str(x.date())
+
+    retrieve_start_date=str(retrieve_start_date,'utf-8') if isinstance(retrieve_start_date,bytes) else retrieve_start_date
+    retrieve_end_date=str(retrieve_end_date,'utf-8') if isinstance(retrieve_end_date,bytes) else retrieve_end_date
+    cache.set('min_date1',str(cache.get('min_date1'),'utf-8')) if isinstance(cache.get('min_date1'),bytes) else 0
+    cache.set('max_date1',str(cache.get('max_date1'),'utf-8')) if isinstance(cache.get('max_date1'),bytes) else 0
+    print("df",pd.DataFramedf_dict)
+
+    if flag:
+        print("retrieveig")
+        url='https://api.exchangeratesapi.io/history?start_at={}&end_at={}'.format(retrieve_start_date,retrieve_end_date)
+        print(url)
+        response=requests.get(url).json()['rates']
+        for key,value in response.items():
+            print('key',key)
+            cache.hmset(str(key),value)
+            cache.lpush('dates',key)
+        # print(cache.lrange('dates',0,3),x)
+        print(cache.hgetall(x))
+    else:
+        print(pd.DataFrame(df_dict))
     print("endmin", cache.get('min_date1'))
     print("endman", cache.get('max_date1'))
+    print(pd.DataFrame(response))
     return response
 
 
